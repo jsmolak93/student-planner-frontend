@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify
-from ..db import students, courses, degree_requirements
+from ..db import students, courses, degree_reqs
 
 analytics_bp = Blueprint('analytics', __name__)
 
