@@ -6,7 +6,6 @@ from pymongo.errors import DuplicateKeyError
 app = Flask(__name__)
 CORS(app)
 
-# MongoDB connection
 client = MongoClient("mongodb://localhost:27017/")
 db = client["student_planner"]
 students = db["students"]
@@ -43,26 +42,23 @@ def search_course():
     term = data.get("term", "TBD")
     course_id = f"{subject.upper()}{course_number}"
 
-    # Look up course
+
     course = courses.find_one({"_id": course_id})
     if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    # Look up semester (term)
+
     semester = semesters.find_one({"_id": term})
     if not semester:
         return jsonify({"error": "Semester not found"}), 404
 
-    # Check if course is available in that term
     if course_id not in semester.get("available_courses", []):
         return jsonify({"error": "Course not offered in this term"}), 400
 
-    # Check if season matches (e.g., "Spring" in "Spring 2026")
     season = term.split()[0]
     if season not in course.get("offered_semesters", []):
         return jsonify({"error": "Course not available in this semester season"}), 400
 
-    # Look up faculty for the course
     faculty_list = list(faculty.find({"courses_taught": course_id}, {"_id": 0, "name": 1}))
     instructor_names = [f["name"] for f in faculty_list]
 
