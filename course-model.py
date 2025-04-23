@@ -5,10 +5,10 @@ from sklearn.preprocessing import LabelEncoder
 # Sample training data
 # [GPA, number of completed courses, major_code]
 X = [
-    [3.8, 10, 0],  # CS
+    [3.8, 10, 0],  
     [2.5, 5, 0],
     [3.9, 12, 0],
-    [2.7, 6, 1],  # OR
+    [2.7, 6, 1],  
     [3.1, 9, 1],
     [3.3, 8, 0],
     [2.9, 5, 1],
