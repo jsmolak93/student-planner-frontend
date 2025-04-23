@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient
+from pymongo.errors import DuplicateKeyError
 
 app = Flask(__name__)
 CORS(app)
@@ -23,6 +24,16 @@ def get_student(student_id):
         return jsonify({"error": "Student not found"}), 404
     student["_id"] = str(student["_id"])
     return jsonify(student)
+
+@app.route("/api/students", methods=["POST"])
+def add_student():
+    data = request.json
+    data.setdefault("planned_courses", [])
+    try:
+        students.insert_one(data)
+        return jsonify({"message": "Student added"})
+    except DuplicateKeyError:
+        return jsonify({"error": "Student ID already exists"}), 400
 
 @app.route("/api/students", methods=["POST"])
 def add_student():
