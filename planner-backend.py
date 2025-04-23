@@ -1,10 +1,10 @@
-from ml_utils import predict_top_courses
+# from ml_utils import predict_top_courses
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient
 
 app = Flask(__name__)
-CORS(app)  # Allow Vue frontend to connect
+CORS(app) 
 
 # MongoDB connection
 client = MongoClient("mongodb://localhost:27017/")

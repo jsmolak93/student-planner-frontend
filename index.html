@@ -25,8 +25,38 @@
       <p><strong>Completed Courses:</strong> {{ student.completed_courses.join(', ') }}</p>
       <p><strong>Current Courses:</strong> {{ student.current_courses.join(', ') }}</p>
       <p><strong>Recommended Courses (ML):</strong> {{ recommendedCourses.join(', ') }}</p>
+
+      <div v-if="eligibleCourses.length">
+        <h3>Eligible Courses (Based on Prerequisites)</h3>
+        <ul>
+          <li v-for="course in eligibleCourses" :key="course">{{ course }}</li>
+        </ul>
+      </div>
+
+      <div v-if="degreeGaps.needed_core.length || degreeGaps.needed_electives.length">
+        <h3>Courses Still Needed</h3>
+        <p><strong>Core:</strong> {{ degreeGaps.needed_core.join(', ') }}</p>
+        <p><strong>Electives:</strong> {{ degreeGaps.needed_electives.join(', ') }}</p>
+      </div>
+
+      <div v-if="courseDependency.length">
+        <h3>Recommended Course Order</h3>
+        <ol>
+          <li v-for="course in courseDependency" :key="course">{{ course }}</li>
+        </ol>
+      </div>      
     </div>
 
+    <div v-if="atRiskStudents.length">
+      <h3>At-Risk Students</h3>
+      <ul>
+        <li v-for="student in atRiskStudents" :key="student.id">
+          <strong>{{ student.name }}</strong> (GPA: {{ student.gpa }})<br>
+          Missing Core Courses: {{ student.missing_core.join(', ') }}
+        </li>
+      </ul>
+    </div>
+    
     <h2>Add New Student</h2>
     <form @submit.prevent="addStudent">
       <input v-model="newStudent._id" placeholder="Student ID" required />
