@@ -5,20 +5,14 @@ createApp({
     return {
       studentId: '',
       student: null,
-      recommendedCourses: [],
-      newStudent: {
-        _id: '',
-        name: '',
-        email: '',
-        major: '',
-        enrollment_year: '',
-        gpa: '',
-        eligibleCourses: [],
-        degreeGaps: { needed_core: [], needed_electives: [] },
-        atRiskStudents: [],
-        courseDependency: []
+      planner: {
+        subject: '',
+        course_number: '',
+        term: ''
       },
-      updatedGPA: ''
+      latestPlannedCourse: null,
+      allPlannedCourses: [],
+      editTerm: ''
     };
   },
   methods: {
@@ -26,53 +20,51 @@ createApp({
       try {
         const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}`);
         this.student = res.data;
-        const rec = await axios.get(`http://localhost:5000/api/ml/recommend-courses/${this.studentId}`);
-        this.recommendedCourses = rec.data.recommended_courses;
+        this.loadAllPlannedCourses();
       } catch (err) {
         console.error("Error loading student:", err);
       }
     },
-    async addStudent() {
+    async submitPlanner() {
       try {
-        await axios.post('http://localhost:5000/api/students', this.newStudent);
-        alert('Student added!');
+        const res = await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan`, this.planner);
+        this.latestPlannedCourse = res.data;
+        alert('Course planned successfully!');
+        this.loadAllPlannedCourses();
       } catch (err) {
-        console.error("Error adding student:", err);
+        console.error("Error submitting planner info:", err);
       }
     },
-    async updateStudentGPA() {
+    async loadAllPlannedCourses() {
       try {
-        await axios.put(`http://localhost:5000/api/students/${this.studentId}`, { gpa: this.updatedGPA });
-        alert('GPA updated!');
-        this.loadStudentData(); // refresh view
+        const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}/plan`);
+        this.allPlannedCourses = res.data.planned_courses;
       } catch (err) {
-        console.error("Error updating GPA:", err);
+        console.error("Error loading planned courses:", err);
       }
     },
-    //Query endpoints
-    async getEligibleCourses() {
-      const res = await axios.get(`http://localhost:5000/api/eligible-courses/${this.studentId}`);
-      this.eligibleCourses = res.data.eligible_courses;
-    },
-    
-    async getDegreeGaps() {
-      const res = await axios.get(`http://localhost:5000/api/degree-gaps/${this.studentId}`);
-      this.degreeGaps = res.data;
-    },
-    
-    async getCourseDependency() {
-      const res = await axios.get(`http://localhost:5000/api/course-dependency/${this.student?.major}`);
-      this.courseDependency = res.data.recommended_order;
-    },
-    async getAtRiskStudents() {
+    async deletePlannedCourse(courseId) {
       try {
-        const res = await axios.get("http://localhost:5000/api/at-risk-students");
-        this.atRiskStudents = res.data.at_risk_students;
+        await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan/delete`, {
+          course_id: courseId
+        });
+        alert('Course removed from planner');
+        this.loadAllPlannedCourses();
       } catch (err) {
-        console.error("Failed to load at-risk students", err);
+        console.error("Error deleting course:", err);
       }
-    }    
-  
+    },
+    async updateCourseTerm(courseId, newTerm) {
+      try {
+        await axios.put(`http://localhost:5000/api/students/${this.studentId}/plan/update`, {
+          course_id: courseId,
+          new_term: newTerm
+        });
+        alert('Course term updated');
+        this.loadAllPlannedCourses();
+      } catch (err) {
+        console.error("Error updating course term:", err);
+      }
+    }
   }
-  
 }).mount('#app');

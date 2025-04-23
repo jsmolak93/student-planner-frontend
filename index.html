@@ -2,80 +2,43 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Student Planner & Recommender</title>
+  <title>Student Course Planner</title>
   <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="app">
-    <h1>Student Info & Recommendations</h1>
+    <h1>Student Course Planner</h1>
 
     <label>Enter Student ID:</label>
     <input v-model="studentId" placeholder="e.g., student_id" />
-    <button @click="loadStudentData">Load Student Info</button>
+    <button @click="loadStudentData">Load Student</button>
 
     <div v-if="student">
-      <h2>Student Details</h2>
-      <p><strong>Name:</strong> {{ student.name }}</p>
-      <p><strong>Email:</strong> {{ student.email }}</p>
-      <p><strong>Major:</strong> {{ student.major }}</p>
-      <p><strong>Enrollment Year:</strong> {{ student.enrollment_year }}</p>
-      <p><strong>GPA:</strong> {{ student.gpa }}</p>
-      <p><strong>Completed Courses:</strong> {{ student.completed_courses.join(', ') }}</p>
-      <p><strong>Current Courses:</strong> {{ student.current_courses.join(', ') }}</p>
-      <p><strong>Recommended Courses (ML):</strong> {{ recommendedCourses.join(', ') }}</p>
+      <h2>Plan a Course</h2>
+      <form @submit.prevent="submitPlanner">
+        <input v-model="planner.subject" placeholder="Subject (e.g., CS)" required />
+        <input v-model="planner.course_number" placeholder="Course Number (e.g., 101)" required />
+        <input v-model="planner.term" placeholder="Term (Fall or Spring 2025)" required />
+        <button type="submit">Add Course to Plan</button>
+      </form>
 
-      <div v-if="eligibleCourses.length">
-        <h3>Eligible Courses (Based on Prerequisites)</h3>
-        <ul>
-          <li v-for="course in eligibleCourses" :key="course">{{ course }}</li>
-        </ul>
+      <div v-if="latestPlannedCourse">
+        <h3>Course Details</h3>
+        <p><strong>Subject:</strong> {{ latestPlannedCourse.subject }}</p>
+        <p><strong>Course Number:</strong> {{ latestPlannedCourse.course_number }}</p>
+        <p><strong>Term:</strong> {{ latestPlannedCourse.term }}</p>
+        <p><strong>Credits:</strong> {{ latestPlannedCourse.credits }}</p>
+        <p><strong>Instructors:</strong> {{ latestPlannedCourse.instructors.join(', ') }}</p>
+        <p><strong>Prerequisites:</strong> {{ latestPlannedCourse.prerequisites.join(', ') }}</p>
       </div>
 
-      <div v-if="degreeGaps.needed_core.length || degreeGaps.needed_electives.length">
-        <h3>Courses Still Needed</h3>
-        <p><strong>Core:</strong> {{ degreeGaps.needed_core.join(', ') }}</p>
-        <p><strong>Electives:</strong> {{ degreeGaps.needed_electives.join(', ') }}</p>
-      </div>
-
-      <div v-if="courseDependency.length">
-        <h3>Recommended Course Order</h3>
-        <ol>
-          <li v-for="course in courseDependency" :key="course">{{ course }}</li>
-        </ol>
-      </div>      
-    </div>
-
-    <div v-if="atRiskStudents.length">
-      <h3>At-Risk Students</h3>
+      <h3>Your Planned Courses</h3>
       <ul>
-        <li v-for="student in atRiskStudents" :key="student.id">
-          <strong>{{ student.name }}</strong> (GPA: {{ student.gpa }})<br>
-          Missing Core Courses: {{ student.missing_core.join(', ') }}
+        <li v-for="course in allPlannedCourses" :key="course.course_id">
+          {{ course.subject }}{{ course.course_number }} ({{ course.term }}) - {{ course.credits }} credits - {{ course.instructors.join(', ') }}
         </li>
-      </ul>
-    </div>
-    
-    <h2>Add New Student</h2>
-    <form @submit.prevent="addStudent">
-      <input v-model="newStudent._id" placeholder="Student ID" required />
-      <input v-model="newStudent.name" placeholder="Name" required />
-      <input v-model="newStudent.email" placeholder="Email" required />
-      <input v-model="newStudent.major" placeholder="Major" required />
-      <input v-model="newStudent.enrollment_year" placeholder="Enrollment Year" type="number" required />
-      <input v-model="newStudent.gpa" placeholder="GPA" type="number" step="0.01" required />
-      <button type="submit">Add Student</button>
-    </form>
-
-    <h2>Update GPA</h2>
-    <input v-model="updatedGPA" placeholder="New GPA" type="number" step="0.01" />
-    <button @click="updateStudentGPA">Update GPA</button>
-
-    <div v-if="recommendedCourses.length">
-      <h2>Recommended Courses</h2>
-      <ul>
-        <li v-for="course in recommendedCourses" :key="course">{{ course }}</li>
       </ul>
     </div>
   </div>
