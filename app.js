@@ -13,8 +13,32 @@ createApp({
       searchedCourse: null
     };
   },
-  
+
   methods: {
+    async addNewStudent() {
+      try {
+        await axios.post('http://localhost:5000/api/students', this.newStudent);
+        alert("Student added!");
+      } catch (err) {
+        console.error("Failed to add student:", err);
+        alert("Error adding student");
+      }
+    },
+
+    async addNewStudent() {
+      try {
+        await axios.post('http://localhost:5000/api/students', this.newStudent);
+        alert("Student added!");
+      } catch (err) {
+        if (err.response?.data?.error === "Student ID already exists") {
+          alert("That student ID is already taken.");
+        } else {
+          alert("Error adding student");
+        }
+        console.error(err.response?.data || err.message);
+      }
+    },
+    
     async loadStudent() {
       try {
         const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}`);
@@ -60,6 +84,7 @@ createApp({
         console.error("Error adding course:", err);
       }
     },
+
     async removeCourse(courseId) {
       try {
         await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan/remove`, {
