@@ -35,13 +35,6 @@ def add_student():
     except DuplicateKeyError:
         return jsonify({"error": "Student ID already exists"}), 400
 
-@app.route("/api/students", methods=["POST"])
-def add_student():
-    data = request.json
-    data.setdefault("planned_courses", [])
-    students.insert_one(data)
-    return jsonify({"message": "Student added"})
-
 @app.route("/api/courses/search", methods=["POST"])
 def search_course():
     data = request.json
@@ -158,86 +151,6 @@ def remove_course_from_plan(student_id):
         return jsonify({"error": "Course not removed"}), 400
 
     return jsonify({"message": "Course removed from plan"})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-##--------- Queries------------------##
-def get_eligible_courses(student_id):
-    student = students.find_one({ "_id": student_id })
-    completed = set(student.get("completed_courses", []))
-
-    eligible_courses = []
-    for course in courses.find():
-        prereqs = set(course.get("prerequisites", []))
-        if prereqs.issubset(completed):
-            eligible_courses.append(course["_id"])
-
-    return eligible_courses
-
-
-def get_degree_gaps(student_id):
-    student = students.find_one({ "_id": student_id })
-    completed = set(student.get("completed_courses", []))
-
-    degree = degree_reqs.find_one({ "_id": student["major"] })
-    core_needed = [c for c in degree["core_courses"] if c not in completed]
-    electives_needed = [e for e in degree["electives"] if e not in completed]
-
-    return {
-        "needed_core": core_needed,
-        "needed_electives": electives_needed
-    }
-
-
-def get_at_risk_students():
-    risk_list = []
-    for student in students.find():
-        completed = student.get("completed_courses", [])
-        gpa = student.get("gpa", 0)
-        major = student.get("major")
-        degree = degree_reqs.find_one({ "_id": major })
-
-        total_credits = sum(courses.find_one({ "_id": cid })["credits"] for cid in completed)
-        if total_credits < 0.6 * degree["total_credits_required"] or gpa < 2.5:
-            risk_list.append({
-                "id": student["_id"],
-                "name": student["name"],
-                "gpa": gpa
-            })
-
-    return risk_list
-
-def get_course_order(major):
-    degree = degree_reqs.find_one({ "_id": major })
-    relevant = degree["core_courses"] + degree["electives"]
-    
-    graph = { course: set() for course in relevant }
-    for course in relevant:
-        prereqs = courses.find_one({ "_id": course }).get("prerequisites", [])
-        graph[course] = set(prereqs)
-
-    return topological_sort(graph)
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -10,21 +10,18 @@ createApp({
         course_number: '',
         term: ''
       },
-      searchedCourse: null
+      searchedCourse: null,
+      newStudent: {
+        _id: '',
+        name: '',
+        email: '',
+        major: '',
+        gpa: ''
+      }
     };
   },
 
   methods: {
-    async addNewStudent() {
-      try {
-        await axios.post('http://localhost:5000/api/students', this.newStudent);
-        alert("Student added!");
-      } catch (err) {
-        console.error("Failed to add student:", err);
-        alert("Error adding student");
-      }
-    },
-
     async addNewStudent() {
       try {
         await axios.post('http://localhost:5000/api/students', this.newStudent);
@@ -38,7 +35,7 @@ createApp({
         console.error(err.response?.data || err.message);
       }
     },
-    
+
     async loadStudent() {
       try {
         const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}`);
@@ -52,12 +49,12 @@ createApp({
     async fetchCourse() {
       try {
         const res = await axios.post(`http://localhost:5000/api/courses/search`, this.courseSearch);
-    
+
         const [enrollRes, semesterRes] = await Promise.all([
           axios.get(`http://localhost:5000/api/enrollments/count/${res.data.course_id}/${res.data.term}`),
           axios.get(`http://localhost:5000/api/semesters/${res.data.term}`)
         ]);
-    
+
         this.searchedCourse = {
           ...res.data,
           enrollment_count: enrollRes.data.count,
