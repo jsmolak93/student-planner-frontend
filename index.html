@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html> 
 <html>
 <head>
   <meta charset="UTF-8">
@@ -12,32 +12,34 @@
     <h1>Student Course Planner</h1>
 
     <label>Enter Student ID:</label>
-    <input v-model="studentId" placeholder="e.g., student_id" />
-    <button @click="loadStudentData">Load Student</button>
+    <input v-model="studentId" placeholder="e.g., 1" />
+    <button @click="loadStudent">Load Student</button>
 
     <div v-if="student">
       <h2>Plan a Course</h2>
-      <form @submit.prevent="submitPlanner">
-        <input v-model="planner.subject" placeholder="Subject (e.g., CS)" required />
-        <input v-model="planner.course_number" placeholder="Course Number (e.g., 101)" required />
-        <input v-model="planner.term" placeholder="Term (Fall or Spring 2025)" required />
-        <button type="submit">Add Course to Plan</button>
-      </form>
+      <input v-model="courseSearch.subject" placeholder="Subject (e.g., CS)" />
+      <input v-model="courseSearch.course_number" placeholder="Course Number (e.g., 101)" />
+      <input v-model="courseSearch.term" placeholder="Term (Fall or Spring 2026)" />
+      <button @click="fetchCourse">Search Course</button>
 
-      <div v-if="latestPlannedCourse">
-        <h3>Course Details</h3>
-        <p><strong>Subject:</strong> {{ latestPlannedCourse.subject }}</p>
-        <p><strong>Course Number:</strong> {{ latestPlannedCourse.course_number }}</p>
-        <p><strong>Term:</strong> {{ latestPlannedCourse.term }}</p>
-        <p><strong>Credits:</strong> {{ latestPlannedCourse.credits }}</p>
-        <p><strong>Instructors:</strong> {{ latestPlannedCourse.instructors.join(', ') }}</p>
-        <p><strong>Prerequisites:</strong> {{ latestPlannedCourse.prerequisites.join(', ') }}</p>
+      <div v-if="searchedCourse">
+        <h3>Course Info</h3>
+        <p><strong>Course:</strong> {{ searchedCourse.course_id }}</p>
+        <p><strong>Term:</strong> {{ searchedCourse.term }}</p>
+        <p><strong>Start Date:</strong> {{ searchedCourse.start_date }}</p>
+        <p><strong>End Date:</strong> {{ searchedCourse.end_date }}</p>
+        <p><strong>Prerequisites:</strong> {{ searchedCourse.prerequisites.join(', ') || 'None' }}</p>
+        <p><strong>Instructor(s):</strong> {{ searchedCourse.instructors.join(', ') }}</p>
+        <p><strong>Credits:</strong> {{ searchedCourse.credits }}</p>
+        <p><strong>Students Enrolled:</strong> {{ searchedCourse.enrollment_count }}</p>
+        <button @click="addCourseToPlan">Add Course to Plan</button>
       </div>
 
-      <h3>Your Planned Courses</h3>
+      <h2>Your Planned Courses</h2>
       <ul>
-        <li v-for="course in allPlannedCourses" :key="course.course_id">
-          {{ course.subject }}{{ course.course_number }} ({{ course.term }}) - {{ course.credits }} credits - {{ course.instructors.join(', ') }}
+        <li v-for="course in student.planned_courses" :key="course.course_id + course.term">
+          {{ course.course_id }} ({{ course.term }}) - {{ course.credits }} credits - {{ course.instructors.join(', ') }}
+          <button @click="removeCourse(course.course_id)">Remove</button>
         </li>
       </ul>
     </div>

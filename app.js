@@ -5,65 +5,69 @@ createApp({
     return {
       studentId: '',
       student: null,
-      planner: {
+      courseSearch: {
         subject: '',
         course_number: '',
         term: ''
       },
-      latestPlannedCourse: null,
-      allPlannedCourses: [],
-      editTerm: ''
+      searchedCourse: null
     };
   },
+  
   methods: {
-    async loadStudentData() {
+    async loadStudent() {
       try {
         const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}`);
         this.student = res.data;
-        this.loadAllPlannedCourses();
       } catch (err) {
-        console.error("Error loading student:", err);
+        console.error("Failed to load student:", err);
+        alert("Student not found");
       }
     },
-    async submitPlanner() {
+
+    async fetchCourse() {
       try {
-        const res = await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan`, this.planner);
-        this.latestPlannedCourse = res.data;
-        alert('Course planned successfully!');
-        this.loadAllPlannedCourses();
+        const res = await axios.post(`http://localhost:5000/api/courses/search`, this.courseSearch);
+    
+        const [enrollRes, semesterRes] = await Promise.all([
+          axios.get(`http://localhost:5000/api/enrollments/count/${res.data.course_id}/${res.data.term}`),
+          axios.get(`http://localhost:5000/api/semesters/${res.data.term}`)
+        ]);
+    
+        this.searchedCourse = {
+          ...res.data,
+          enrollment_count: enrollRes.data.count,
+          start_date: semesterRes.data.start_date,
+          end_date: semesterRes.data.end_date
+        };
       } catch (err) {
-        console.error("Error submitting planner info:", err);
+        alert("Course or semester not found");
+        this.searchedCourse = null;
+        console.error(err.response?.data || err.message);
       }
     },
-    async loadAllPlannedCourses() {
+
+    async addCourseToPlan() {
       try {
-        const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}/plan`);
-        this.allPlannedCourses = res.data.planned_courses;
+        await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan`, {
+          subject: this.courseSearch.subject,
+          course_number: this.courseSearch.course_number,
+          term: this.courseSearch.term
+        });
+        await this.loadStudent();
+        alert("Course added to plan.");
       } catch (err) {
-        console.error("Error loading planned courses:", err);
+        console.error("Error adding course:", err);
       }
     },
-    async deletePlannedCourse(courseId) {
+    async removeCourse(courseId) {
       try {
-        await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan/delete`, {
+        await axios.post(`http://localhost:5000/api/students/${this.studentId}/plan/remove`, {
           course_id: courseId
         });
-        alert('Course removed from planner');
-        this.loadAllPlannedCourses();
+        await this.loadStudent();
       } catch (err) {
-        console.error("Error deleting course:", err);
-      }
-    },
-    async updateCourseTerm(courseId, newTerm) {
-      try {
-        await axios.put(`http://localhost:5000/api/students/${this.studentId}/plan/update`, {
-          course_id: courseId,
-          new_term: newTerm
-        });
-        alert('Course term updated');
-        this.loadAllPlannedCourses();
-      } catch (err) {
-        console.error("Error updating course term:", err);
+        console.error("Error removing course:", err);
       }
     }
   }
