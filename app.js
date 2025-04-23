@@ -5,7 +5,7 @@ createApp({
     return {
       studentId: '',
       student: null,
-      recommendations: [],
+      recommendedCourses: [],
       newStudent: {
         _id: '',
         name: '',
@@ -22,8 +22,8 @@ createApp({
       try {
         const res = await axios.get(`http://localhost:5000/api/students/${this.studentId}`);
         this.student = res.data;
-        const rec = await axios.get(`http://localhost:5000/api/recommendations/${this.studentId}`);
-        this.recommendations = rec.data.recommended_courses;
+        const rec = await axios.get(`http://localhost:5000/api/ml/recommend-courses/${this.studentId}`);
+        this.recommendedCourses = rec.data.recommended_courses;
       } catch (err) {
         console.error("Error loading student:", err);
       }

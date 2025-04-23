@@ -24,6 +24,7 @@
       <p><strong>GPA:</strong> {{ student.gpa }}</p>
       <p><strong>Completed Courses:</strong> {{ student.completed_courses.join(', ') }}</p>
       <p><strong>Current Courses:</strong> {{ student.current_courses.join(', ') }}</p>
+      <p><strong>Recommended Courses (ML):</strong> {{ recommendedCourses.join(', ') }}</p>
     </div>
 
     <h2>Add New Student</h2>
@@ -41,11 +42,10 @@
     <input v-model="updatedGPA" placeholder="New GPA" type="number" step="0.01" />
     <button @click="updateStudentGPA">Update GPA</button>
 
-
-    <div v-if="recommendations.length">
+    <div v-if="recommendedCourses.length">
       <h2>Recommended Courses</h2>
       <ul>
-        <li v-for="course in recommendations" :key="course">{{ course }}</li>
+        <li v-for="course in recommendedCourses" :key="course">{{ course }}</li>
       </ul>
     </div>
   </div>

@@ -1,3 +1,4 @@
+from ml_utils import predict_top_courses
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from pymongo import MongoClient
@@ -24,8 +25,14 @@ def get_student(student_id):
 @app.route("/api/students", methods=["POST"])
 def add_student():
     data = request.json
+
+    # Add default empty lists if not provided
+    data.setdefault("completed_courses", [])
+    data.setdefault("current_courses", [])
+
     students.insert_one(data)
     return jsonify({"message": "Student added"})
+
 
 @app.route("/api/students/<student_id>", methods=["PUT"])
 def update_student(student_id):
@@ -33,32 +40,23 @@ def update_student(student_id):
     students.update_one({"_id": student_id}, {"$set": data})
     return jsonify({"message": "Student updated"})
 
-@app.route("/api/recommendations/<student_id>", methods=["GET"])
-def get_recommendations(student_id):
+@app.route("/api/ml/recommend-courses/<student_id>")
+def ml_recommend_courses(student_id):
     student = students.find_one({"_id": student_id})
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
-    major = student.get("major")
-    completed = set(student.get("completed_courses", []))
+    gpa = student.get("gpa", 0)
+    completed = len(student.get("completed_courses", []))
 
-    degree = degree_reqs.find_one({"degree_name": {"$regex": major, "$options": "i"}})
-    if not degree:
-        return jsonify({"recommended_courses": []})
+    # Map major to numeric code for your model
+    major_map = {"Computer Science": 0, "Operations Research": 1}
+    major_code = major_map.get(student.get("major", ""), -1)
+    if major_code == -1:
+        return jsonify({"error": "Unknown major"}), 400
 
-    all_courses = set(degree.get("core_courses", []) + degree.get("electives", []))
-    missing_courses = all_courses - completed
-
-    eligible_courses = []
-    for course_id in missing_courses:
-        course = courses.find_one({"_id": course_id})
-        if not course:
-            continue
-        prereqs = course.get("prerequisites", [])
-        if all(pr in completed for pr in prereqs):
-            eligible_courses.append(course_id)
-
-    return jsonify({"recommended_courses": eligible_courses})
+    recommendations = predict_top_courses(gpa, completed, major_code)
+    return jsonify({"recommended_courses": recommendations})
 
 if __name__ == "__main__":
     app.run(debug=True)
