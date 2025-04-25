@@ -1,67 +1,90 @@
+:root {
+  --gmu-green: #006633;
+  --gmu-gold: #ffcc33;
+  --gmu-white: #ffffff;
+  --gmu-dark-text: #333333;
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f5f7fa;
-    color: #333;
-    padding: 2rem;
-    line-height: 1.6;
-  }
-  
-  h1 {
-    color: #2c3e50;
-    font-size: 2rem;
-    margin-bottom: 1rem;
-  }
-  
-  h2 {
-    margin-top: 2rem;
-    color: #34495e;
-    border-bottom: 2px solid #ddd;
-    padding-bottom: 0.5rem;
-  }
-  
-  label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: bold;
-  }
-  
-  input {
-    padding: 0.5rem;
-    width: 300px;
-    max-width: 100%;
-    margin-bottom: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-  }
-  
-  button {
-    background-color: #3498db;
-    color: white;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 5px;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-left: 0.5rem;
-  }
-  
-  button:hover {
-    background-color: #2980b9;
-  }
-  
-  ul {
-    list-style: none;
-    padding-left: 0;
-  }
-  
-  li {
-    background-color: #ecf0f1;
-    margin-bottom: 0.5rem;
-    padding: 0.6rem 1rem;
-    border-radius: 5px;
-  }
-  
-  p {
-    margin: 0.3rem 0;
-  }
-  
+  font-family: 'Segoe UI', sans-serif;
+  background-color: var(--gmu-white);
+  color: var(--gmu-dark-text);
+  margin: 0;
+  padding: 0;
+}
+
+header {
+  background-color: var(--gmu-white);
+  border-bottom: 4px solid var(--gmu-green);
+  display: flex;
+  align-items: center;
+  padding: 15px 30px;
+}
+
+header img {
+  height: 60px;
+  margin-right: 20px;
+}
+
+header h1 {
+  font-size: 24px;
+  color: var(--gmu-green);
+}
+
+nav {
+  display: flex;
+  gap: 20px;
+  margin-left: auto;
+}
+
+nav a {
+  color: var(--gmu-dark-text);
+  text-decoration: none;
+  font-weight: 500;
+  padding: 5px 10px;
+}
+
+nav a:hover {
+  color: var(--gmu-green);
+  border-bottom: 2px solid var(--gmu-gold);
+}
+
+button {
+  background-color: var(--gmu-green);
+  color: var(--gmu-white);
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 4px;
+}
+
+button:hover {
+  background-color: var(--gmu-gold);
+  color: var(--gmu-dark-text);
+}
+
+input {
+  border: 1px solid #ccc;
+  padding: 8px;
+  border-radius: 4px;
+  margin: 5px;
+  width: 250px;
+}
+
+h1, h2 {
+  color: var(--gmu-green);
+}
+
+ul {
+  padding-left: 20px;
+}
+
+.results {
+  background-color: #f9f9f9;
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  margin-top: 20px;
+}

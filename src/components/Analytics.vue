@@ -1,64 +1,93 @@
 <template>
-    <div>
-      <h1>Analytics Dashboard</h1>
-      
-      <div>
-        <h2>Eligible Courses</h2>
-        <input v-model="studentId" placeholder="Enter Student ID" />
-        <button @click="fetchEligibleCourses">Check Eligibility</button>
-        <ul>
-          <li v-for="course in eligibleCourses" :key="course">{{ course }}</li>
-        </ul>
-      </div>
-  
-      <div>
-        <h2>Degree Gaps</h2>
-        <button @click="fetchDegreeGaps">Get Degree Gaps</button>
-        <p><strong>Core Courses Needed:</strong> {{ degreeGaps.needed_core.join(', ') }}</p>
-        <p><strong>Electives Needed:</strong> {{ degreeGaps.needed_electives.join(', ') }}</p>
-      </div>
-  
-      <div>
-        <h2>At-Risk Students</h2>
-        <button @click="fetchAtRisk">View At-Risk Students</button>
-        <ul>
-          <li v-for="student in atRisk" :key="student.id">
-            {{ student.name }} - GPA: {{ student.gpa }}
-          </li>
-        </ul>
-      </div>
+  <div class="analytics">
+    <h1>Analytics</h1>
+
+    <div class="inputs">
+      <input v-model="studentId" placeholder="Enter Student SSN" type="number" />
+      <input v-model="majorDcode" placeholder="Enter Major Dcode (e.g., D11)" />
     </div>
-  </template>
-  
-  <script>
-  import axios from 'axios';
-  
-  export default {
-    data() {
-      return {
-        studentId: '',
-        eligibleCourses: [],
-        degreeGaps: {
-          needed_core: [],
-          needed_electives: []
-        },
-        atRisk: []
-      };
-    },
-    methods: {
-      async fetchEligibleCourses() {
-        const res = await axios.get(`http://localhost:5000/api/analytics/eligible-courses/${this.studentId}`);
-        this.eligibleCourses = res.data.eligible_courses;
-      },
-      async fetchDegreeGaps() {
-        const res = await axios.get(`http://localhost:5000/api/analytics/degree-gaps/${this.studentId}`);
-        this.degreeGaps = res.data;
-      },
-      async fetchAtRisk() {
-        const res = await axios.get('http://localhost:5000/api/analytics/at-risk-students');
-        this.atRisk = res.data.at_risk_students;
+
+    <div class="buttons">
+      <button @click="fetchEligibleCourses">Find Eligible Courses</button>
+      <button @click="fetchDegreeRequirements">Find Degree Requirements</button>
+      <button @click="fetchAtRiskStudents">Find At-Risk Students</button>
+      <button @click="fetchCourseDependency">Show Course Dependency</button>
+    </div>
+
+    <div class="results" v-if="results.length">
+      <h2>Results</h2>
+      <ul>
+        <li v-for="(item, index) in results" :key="index">
+          {{ item }}
+        </li>
+      </ul>
+    </div>
+
+    <div v-else>
+      <p>No results yet. Please run a query.</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+
+export default {
+  name: 'Analytics',
+  data() {
+    return {
+      studentId: '',
+      majorDcode: '',
+      results: []
+    };
+  },
+  methods: {
+    async fetchEligibleCourses() {
+      if (!this.studentId) {
+        alert("Please enter a Student SSN");
+        return;
       }
+      const response = await axios.get(`/api/eligible-courses/${this.studentId}`);
+      this.results = response.data;
+    },
+    async fetchDegreeRequirements() {
+      if (!this.studentId) {
+        alert("Please enter a Student SSN");
+        return;
+      }
+      const response = await axios.get(`/api/degree-requirements/${this.studentId}`);
+      this.results = response.data;
+    },
+    async fetchAtRiskStudents() {
+      const response = await axios.get(`/api/at-risk-students`);
+      this.results = response.data;
+    },
+    async fetchCourseDependency() {
+      if (!this.majorDcode) {
+        alert("Please enter a Major Dcode");
+        return;
+      }
+      const response = await axios.get(`/api/course-dependency/${this.majorDcode}`);
+      this.results = response.data.course_order || [];
     }
-  };
-  </script>
-  
+  }
+};
+</script>
+
+<style scoped>
+.analytics {
+  padding: 20px;
+}
+.inputs {
+  margin-bottom: 20px;
+}
+.buttons {
+  margin-bottom: 20px;
+}
+.results {
+  margin-top: 30px;
+}
+button {
+  margin-right: 10px;
+}
+</style>
