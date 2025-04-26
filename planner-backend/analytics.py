@@ -1,127 +1,119 @@
 from flask import Blueprint, request, jsonify
-from db import find_student, find_prereqs, find_transcripts, COLLECTIONS
+from collections import defaultdict, deque
+from db import db, find_student, find_course, find_department, find_prereqs, find_transcripts
 
 analytics_bp = Blueprint("analytics", __name__)
 
-# Query 1: Find eligible courses a student can take based on completed prerequisites
-@analytics_bp.route("/api/eligible-courses/<int:ssn>", methods=["GET"])
-def get_eligible_courses(ssn):
-    student, _ = find_student(ssn)
-    if not student:
-        return jsonify({"error": "Student not found"}), 404
-
-    completed = {(t['dcode'], t['cno']) for t in find_transcripts(ssn) if t.get("grade") and t['grade'] not in ["F", None]}
-    eligible = []
-
-    for collection in COLLECTIONS:
-        doc = collection.find_one({}, {"tables.course": 1, "tables.prereq": 1})
-        if not doc or "tables" not in doc:
-            continue
-
-        courses = doc["tables"].get("course", [])
-        for course in courses:
-            dcode, cno = course["dcode"], course["cno"]
-            prereqs = find_prereqs(dcode, cno)
-            if all((p["pcode"], p["pno"]) in completed for p in prereqs):
-                eligible.append(course)
-
-    return jsonify(eligible)
-
-# Query 2: Recommend courses needed to fulfill degree requirements
-@analytics_bp.route("/api/degree-requirements/<int:ssn>", methods=["GET"])
-def get_degree_requirements(ssn):
-    student, _ = find_student(ssn)
+@analytics_bp.route("/api/recommend-courses/<int:ssn>", methods=["GET"])
+def recommend_courses(ssn):
+    student = find_student(ssn)
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
     major = student.get("major")
-    completed = {(t['dcode'], t['cno']) for t in find_transcripts(ssn)}
-    required = set()
+    if not major:
+        return jsonify({"error": "Student major not found"}), 404
 
-    for collection in COLLECTIONS:
-        doc = collection.find_one({}, {"tables.course": 1})
-        if not doc:
-            continue
-        for course in doc["tables"]["course"]:
-            if course["dcode"] == major:
-                key = (course["dcode"], course["cno"])
-                if key not in completed:
-                    required.add(key)
+    # Get all courses required for the major
+    major_courses = list(db.course.find({"dcode": major}))
 
-    results = [
-        {"dcode": d, "cno": c} for (d, c) in required
-    ]
-    return jsonify(results)
+    # Get all courses the student already completed
+    completed_courses = set()
+    transcripts = find_transcripts(ssn)
+    for t in transcripts:
+        if t.get("grade") and t["grade"] not in ["F", None]:
+            completed_courses.add((t["dcode"], t["cno"]))
 
+    # Recommend any courses in the major not already completed
+    recommended = []
+    for course in major_courses:
+        if (course["dcode"], course["cno"]) not in completed_courses:
+            recommended.append({
+                "dcode": course["dcode"],
+                "cno": course["cno"],
+                "title": course["title"]
+            })
+
+    return jsonify(recommended)
+
+
+# Query 1: Find eligible courses a student can take based on completed prerequisites
+@analytics_bp.route("/api/eligible-courses/<int:ssn>", methods=["GET"])
+def get_eligible_courses(ssn):
+    student = find_student(ssn)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+
+    completed_courses = set()
+    transcripts = find_transcripts(ssn)
+    for t in transcripts:
+        if t.get("grade") and t["grade"] not in ["F", None]:
+            completed_courses.add((t["dcode"], t["cno"]))
+
+    eligible_courses = []
+    all_courses = list(db.course.find())
+
+    for course in all_courses:
+        prereqs = find_prereqs(course["dcode"], course["cno"])
+        if all((p["pcode"], p["pno"]) in completed_courses for p in prereqs):
+            eligible_courses.append({"dcode": course["dcode"], "cno": course["cno"], "title": course["title"]})
+
+    return jsonify(eligible_courses)
+
+# Query 2: Recommend courses needed to fulfill degree requirements
+@analytics_bp.route("/api/recommend-courses/<int:ssn>", methods=["GET"])
+def recommend_courses(ssn):
+    student = find_student(ssn)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+
+    major = student.get("major")
+    if not major:
+        return jsonify({"error": "Student major not found"}), 404
+
+    major_courses = list(db.course.find({"dcode": major}))
+    completed = {(t["dcode"], t["cno"]) for t in find_transcripts(ssn) if t.get("grade") and t["grade"] not in ["F", None]}
+
+    recommended = []
+    for course in major_courses:
+        if (course["dcode"], course["cno"]) not in completed:
+            recommended.append({"dcode": course["dcode"], "cno": course["cno"], "title": course["title"]})
+
+    return jsonify(recommended)
+
+# Query 3: List students at risk of delayed graduation
 @analytics_bp.route("/api/at-risk-students", methods=["GET"])
-def get_at_risk_students():
+def at_risk_students():
     risk_list = []
+    students = list(db.student.find())
 
-    for collection in COLLECTIONS:
-        doc = collection.find_one({}, {"tables.student": 1, "tables.transcript": 1, "tables.enrollment": 1})
-        if not doc:
-            continue
+    for student in students:
+        ssn = student["ssn"]
+        transcripts = find_transcripts(ssn)
+        active_courses = [t for t in transcripts if not t.get("grade") or t["grade"] in ["F", None]]
 
-        students = doc["tables"].get("student", [])
-        transcripts = doc["tables"].get("transcript", [])
-        enrollments = doc["tables"].get("enrollment", [])
-
-        # Calculate completed courses
-        student_course_count = {}
-        for t in transcripts:
-            if t.get("grade") and t["grade"] not in ["F", None]:
-                student_course_count[t["ssn"]] = student_course_count.get(t["ssn"], 0) + 1
-
-        # Also check enrolled classes (current semester load)
-        student_enrollment_count = {}
-        for e in enrollments:
-            student_enrollment_count[e["ssn"]] = student_enrollment_count.get(e["ssn"], 0) + 1
-
-        for s in students:
-            ssn = s["ssn"]
-            completed = student_course_count.get(ssn, 0)
-            enrolled = student_enrollment_count.get(ssn, 0)
-            total_courses = completed + enrolled
-
-            semesters = 2
-            avg_courses_per_term = total_courses / semesters
-
-            if avg_courses_per_term < 2:
-                risk_list.append({
-                    "ssn": ssn,
-                    "name": s["name"],
-                    "avg_courses_per_term": avg_courses_per_term
-                })
+        if len(active_courses) > 5:  # arbitrary threshold
+            risk_list.append({"ssn": ssn, "name": student["name"], "major": student.get("major")})
 
     return jsonify(risk_list)
 
+# Query 4: Show course dependency for a selected major
 @analytics_bp.route("/api/course-dependency/<string:dcode>", methods=["GET"])
 def get_course_dependency(dcode):
-    from collections import defaultdict, deque
     graph = defaultdict(list)
     all_courses = set()
-    department_name = None
+    department = find_department(dcode)
+    department_name = department.get("dname") if department else None
 
-    for collection in COLLECTIONS:
-        doc = collection.find_one({}, {"tables.course": 1, "tables.prereq": 1, "tables.department": 1})
-        if not doc:
-            continue
-
-        for dept in doc["tables"].get("department", []):
-            if dept["dcode"] == dcode:
-                department_name = dept.get("dname")
-
-      
-        for prereq in doc["tables"].get("prereq", []):
-            if prereq["dcode"] == dcode:
-                graph[(prereq["pcode"], prereq["pno"])].append((prereq["dcode"], prereq["cno"]))
-                all_courses.add((prereq["pcode"], prereq["pno"]))
-                all_courses.add((prereq["dcode"], prereq["cno"]))
-
+    prereqs = list(db.prereq.find({"dcode": dcode}))
+    for prereq in prereqs:
+        graph[(prereq["pcode"], prereq["pno"])].append((prereq["dcode"], prereq["cno"]))
+        all_courses.add((prereq["pcode"], prereq["pno"]))
+        all_courses.add((prereq["dcode"], prereq["cno"]))
 
     in_degree = defaultdict(int)
-    for prereqs in graph.values():
-        for course in prereqs:
+    for prereqs_list in graph.values():
+        for course in prereqs_list:
             in_degree[course] += 1
 
     queue = deque([c for c in all_courses if in_degree[c] == 0])

@@ -1,15 +1,27 @@
+# courses.py (Refactored)
+
 from flask import Blueprint, request, jsonify
-from db import find_course, COLLECTIONS
+from db import db, find_course
 
 courses_bp = Blueprint("courses", __name__)
 
-# Get a specific course
+# Get a course by dcode and cno
 @courses_bp.route("/api/courses/<string:dcode>/<int:cno>", methods=["GET"])
 def get_course(dcode, cno):
-    course, _ = find_course(dcode, cno)
+    course = find_course(dcode, cno)
     if not course:
         return jsonify({"error": "Course not found"}), 404
+
+    course["_id"] = str(course["_id"])  # Make ObjectId JSON serializable
     return jsonify(course)
+
+# Get all courses
+@courses_bp.route("/api/courses", methods=["GET"])
+def get_all_courses():
+    courses = list(db.course.find())
+    for course in courses:
+        course["_id"] = str(course["_id"])  # Make ObjectId JSON serializable
+    return jsonify(courses)
 
 # Add a new course
 @courses_bp.route("/api/courses", methods=["POST"])
@@ -18,33 +30,30 @@ def add_course():
     dcode = data.get("dcode")
     cno = data.get("cno")
 
-    existing_course, _ = find_course(dcode, cno)
+    existing_course = find_course(dcode, cno)
     if existing_course:
         return jsonify({"error": "Course already exists"}), 400
 
-    COLLECTIONS[0].update_one({}, {"$push": {"tables.course": data}})
-    return jsonify({"message": "Course added successfully!"}), 201
+    db.course.insert_one(data)
+    return jsonify({"message": "Course added successfully!"})
 
-# Update an existing course
+# Update a course
 @courses_bp.route("/api/courses/<string:dcode>/<int:cno>", methods=["PUT"])
 def update_course(dcode, cno):
-    updates = request.json
-    _, collection = find_course(dcode, cno)
-    if not collection:
+    course = find_course(dcode, cno)
+    if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    collection.update_one(
-        {"tables.course": {"$elemMatch": {"dcode": dcode, "cno": cno}}},
-        {"$set": {f"tables.course.$.{key}": value for key, value in updates.items()}}
-    )
+    updates = request.json
+    db.course.update_one({"dcode": dcode, "cno": cno}, {"$set": updates})
     return jsonify({"message": "Course updated successfully!"})
 
 # Delete a course
 @courses_bp.route("/api/courses/<string:dcode>/<int:cno>", methods=["DELETE"])
 def delete_course(dcode, cno):
-    _, collection = find_course(dcode, cno)
-    if not collection:
+    course = find_course(dcode, cno)
+    if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    collection.update_one({}, {"$pull": {"tables.course": {"dcode": dcode, "cno": cno}}})
+    db.course.delete_one({"dcode": dcode, "cno": cno})
     return jsonify({"message": "Course deleted successfully!"})

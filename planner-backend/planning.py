@@ -1,5 +1,7 @@
+# planning.py (Refactored)
+
 from flask import Blueprint, request, jsonify
-from db import find_student, find_course, COLLECTIONS
+from db import db, find_student, find_course
 
 planning_bp = Blueprint("planning", __name__)
 
@@ -13,31 +15,34 @@ def add_course_to_plan(ssn):
     if not dcode or not cno:
         return jsonify({"error": "dcode and cno are required"}), 400
 
-    student, student_db = find_student(ssn)
+    student = find_student(ssn)
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
-    course, _ = find_course(dcode, int(cno))
+    course = find_course(dcode, int(cno))
     if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    planned_course = {"dcode": dcode, "cno": int(cno)}
-    existing_plan = student.get("planned_courses", [])
+    # Initialize planned_courses if not present
+    if "planned_courses" not in student:
+        student["planned_courses"] = []
 
-    if planned_course in existing_plan:
+    planned_course = {"dcode": dcode, "cno": int(cno)}
+
+    if planned_course in student["planned_courses"]:
         return jsonify({"error": "Course already planned"}), 400
 
-    student_db.update_one(
-        {"tables.student.ssn": ssn},
-        {"$push": {"tables.student.$.planned_courses": planned_course}}
+    db.student.update_one(
+        {"ssn": ssn},
+        {"$push": {"planned_courses": planned_course}}
     )
 
     return jsonify({"message": "Course added to plan!"})
 
-# Get planned courses for a student
+# Get a student's planned courses
 @planning_bp.route("/api/students/<int:ssn>/plan", methods=["GET"])
 def get_planned_courses(ssn):
-    student, _ = find_student(ssn)
+    student = find_student(ssn)
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
@@ -54,13 +59,16 @@ def remove_course_from_plan(ssn):
     if not dcode or not cno:
         return jsonify({"error": "dcode and cno are required"}), 400
 
-    for collection in COLLECTIONS:
-        result = collection.update_one(
-            {},
-            {"$pull": {"tables.student.$[student].planned_courses": {"dcode": dcode, "cno": int(cno)}}},
-            array_filters=[{"student.ssn": ssn}]
-        )
-        if result.modified_count > 0:
-            return jsonify({"message": "Course removed from plan!"})
+    student = find_student(ssn)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
 
-    return jsonify({"error": "Course not found in plan"}), 404
+    result = db.student.update_one(
+        {"ssn": ssn},
+        {"$pull": {"planned_courses": {"dcode": dcode, "cno": int(cno)}}}
+    )
+
+    if result.modified_count == 0:
+        return jsonify({"error": "Course not found in plan"}), 404
+
+    return jsonify({"message": "Course removed from plan!"})
