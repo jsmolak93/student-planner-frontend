@@ -3,12 +3,11 @@
     "version": "1.0.0",
     "description": "Student planner app",
     "scripts": {
-      "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
-      "frontend": "cd vue-frontend && npm run dev",
-      "backend": "cd planner-backend && python app.py"
+        "dev": "concurrently \"npm run frontend\" \"npm run backend\"",
+        "frontend": "cd vue-frontend && npm run dev",
+        "backend": "cd planner-backend && python app.py"
     },
     "devDependencies": {
-      "concurrently": "^8.2.0"
+        "concurrently": "^8.2.2"
     }
-  }
-  
+}
