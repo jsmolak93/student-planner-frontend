@@ -1,83 +1,79 @@
 <template>
-    <div class="course-search">
-      <h1>Course Search</h1>
-  
-      <div class="filters">
-        <input v-model="dcode" placeholder="Department Code (e.g., D23)" />
-        <input v-model="cno" placeholder="Course Number (optional)" type="number" />
-        <button @click="searchCourses">Search</button>
-      </div>
-  
-      <div class="student-option">
-        <input v-model="studentId" placeholder="Student SSN (to enable planner add)" type="number" />
-      </div>
-  
-      <div v-if="results.length" class="results">
-        <h2>Search Results</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Dcode</th>
-              <th>Cno</th>
-              <th>Title</th>
-              <th>Units</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(course, index) in results" :key="index">
-              <td>{{ course.dcode }}</td>
-              <td>{{ course.cno }}</td>
-              <td>{{ course.title }}</td>
-              <td>{{ course.units }}</td>
-              <td>
-                <button v-if="studentId" @click="addToPlan(course.dcode, course.cno)">
-                  Add to Planner
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-  
-      <div v-else>
-        <p>No results yet.</p>
-      </div>
+  <div class="page-container">
+    <h1 class="page-title">Course Search</h1>
+
+    <div class="filters">
+      <input v-model="dcode" placeholder="Department Code (e.g., D23)" />
+      <input v-model="cno" placeholder="Course Number (optional)" type="number" />
+      <button @click="searchCourses" class="nav-button">Search Courses</button>
     </div>
-  </template>
-  
-  <script>
-  import axios from 'axios';
-  
-  export default {
-    name: 'CourseSearch',
-    data() {
-      return {
-        dcode: '',
-        cno: '',
-        studentId: '',
-        results: []
-      };
-    },
-    methods: {
+
+    <div class="student-option">
+      <input v-model="studentId" placeholder="Student SSN (to enable adding to planner)" type="number" />
+    </div>
+
+    <div v-if="results.length" class="results">
+      <h2 class="sub-title">Search Results</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Dcode</th>
+            <th>Cno</th>
+            <th>Title</th>
+            <th>Units</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="(course, index) in results" :key="index">
+            <td>{{ course.dcode }}</td>
+            <td>{{ course.cno }}</td>
+            <td>{{ course.title }}</td>
+            <td>{{ course.units }}</td>
+            <td>
+              <button v-if="studentId" @click="addToPlan(course.dcode, course.cno)" class="small-button">
+                Add to Planner
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-else-if="searched" class="no-results">
+      No results found.
+    </div>
+
+    <RouterLink to="/" class="home-link">← Back to Home</RouterLink>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+
+export default {
+  name: 'CourseSearch',
+  data() {
+    return {
+      dcode: '',
+      cno: '',
+      studentId: '',
+      results: [],
+      searched: false
+    };
+  },
+  methods: {
       async searchCourses() {
         try {
-          // We'll simulate filtering manually since you don’t have a backend filter endpoint yet
-          const allCourses = [];
-  
-          // Pull from each DB and manually filter in frontend
-          const dbList = ['univDB1', 'univDB2', 'univDB3', 'univDB4', 'univDB5'];
-          for (const db of dbList) {
-            const res = await axios.get(`/api/raw/${db}`); // This assumes you set up a /api/raw/:db route
-            const courses = res.data?.tables?.course || [];
-            allCourses.push(...courses);
-          }
-  
+          const response = await axios.get('/api/courses');
+          const allCourses = response.data || [];
+
           this.results = allCourses.filter(course => {
             const matchDcode = !this.dcode || course.dcode === this.dcode;
             const matchCno = !this.cno || course.cno === parseInt(this.cno);
             return matchDcode && matchCno;
           });
+          this.searched = true;
         } catch (err) {
           alert("Error searching courses.");
           console.error(err);
@@ -96,28 +92,107 @@
         }
       }
     }
-  };
-  </script>
-  
-  <style scoped>
-  .course-search {
-    padding: 20px;
-  }
-  .filters, .student-option {
-    margin-bottom: 20px;
-  }
-  input {
-    margin-right: 10px;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-  th, td {
-    border: 1px solid #ccc;
-    padding: 10px;
-    text-align: left;
-  }
-  </style>
-  
+
+};
+</script>
+
+<style scoped>
+.page-container {
+  padding: 40px;
+  text-align: center;
+  background-color: #ffffff;
+  min-height: 100vh;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  color: #006633;
+  margin-bottom: 30px;
+}
+
+.filters, .student-option {
+  margin-bottom: 20px;
+}
+
+input {
+  margin: 10px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 1rem;
+}
+
+.nav-button {
+  background-color: #006633;
+  color: #ffcc33;
+  padding: 10px 20px;
+  font-weight: bold;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.nav-button:hover {
+  background-color: #004d26;
+  color: #ffffff;
+}
+
+.results {
+  margin-top: 30px;
+}
+
+.sub-title {
+  font-size: 1.8rem;
+  color: #006633;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  margin-top: 15px;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ccc;
+  padding: 12px;
+  text-align: center;
+}
+
+th {
+  background-color: #006633;
+  color: #ffffff;
+}
+
+.small-button {
+  background-color: #006633;
+  color: #ffcc33;
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.9rem;
+}
+
+.small-button:hover {
+  background-color: #004d26;
+  color: #ffffff;
+}
+
+.no-results {
+  margin-top: 30px;
+  font-size: 1.2rem;
+  color: #333;
+}
+
+.home-link {
+  display: block;
+  margin-top: 40px;
+  color: #006633;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.home-link:hover {
+  text-decoration: underline;
+}
+</style>
