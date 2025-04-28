@@ -13,6 +13,8 @@
       <RouterLink to="/course-search" class="nav-button">Course Search</RouterLink>
       <RouterLink to="/course-recommendation" class="nav-button">Course Recommendation</RouterLink>
       <RouterLink to="/analytics" class="nav-button">Analytics</RouterLink>
+      <RouterLink to="/visualization" class="nav-button">Analytics Visualization</RouterLink>
+   
     </div>
     <div class="bottom-image-wrapper">
       <img src="/mason_graduation.jpg" alt="Mason Graduation" class="bottom-image" />
@@ -26,11 +28,10 @@
   text-align: center;
   padding: 40px;
   background-color: #ffffff;
-  overflow: hidden; /* already here — good */
-  height: 100vh; /* force full screen height */
+  overflow: hidden; 
+  height: 100vh; 
 }
 
-/* Translucent background image */
 .background-overlay {
   position: absolute;
   top: 0;
@@ -39,39 +40,39 @@
   height: 60%;
   opacity: 0.15;
   object-fit: cover;
-  z-index: 0; /* <-- make it sit at the very back */
+  z-index: 0; 
 }
 
-/* Make all front items sit above the background */
+
 .logo,
 h1,
 .tagline,
 .button-group {
   position: relative;
-  z-index: 2; /* <-- bring them forward */
+  z-index: 2; 
 }
 
-/* Logo */
+
 .logo {
   width: 120px;
   margin-bottom: 20px;
 }
 
-/* Title */
+
 h1 {
   font-size: 2.5rem;
   color: #006633;
   margin-bottom: 10px;
 }
 
-/* Tagline */
+
 .tagline {
   font-size: 1.2rem;
   color: #333;
   margin-bottom: 30px;
 }
 
-/* Button group */
+
 .button-group {
   display: flex;
   justify-content: center;
@@ -96,7 +97,7 @@ h1 {
   color: #ffffff;
 }
 
-/* Bottom Graduation Image */
+
 .bottom-image-wrapper {
   width: 100vw;
   position: relative;
