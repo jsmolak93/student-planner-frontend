@@ -166,3 +166,51 @@ def get_course_dependency(dcode):
         "major": {"dcode": dcode, "dname": department_name},
         "course_order": course_order_with_titles
     })
+
+#------------------------------------------------------------------------------#
+
+# --- Students per Major Chart ---
+@analytics_bp.route("/api/charts/students-by-major", methods=["GET"])
+def students_by_major():
+    students = list(db.student.find())
+    departments = {d["dcode"]: d["dname"] for d in db.department.find()}
+    
+    counts = {}
+    for student in students:
+        major_code = student.get("major")
+        major_name = departments.get(major_code, major_code)
+        counts[major_name] = counts.get(major_name, 0) + 1
+
+    return jsonify(counts)
+
+# --- Courses per Department Chart ---
+@analytics_bp.route("/api/charts/courses-by-department", methods=["GET"])
+def courses_by_department():
+    courses = list(db.course.find())
+    departments = {d["dcode"]: d["dname"] for d in db.department.find()}
+
+    counts = {}
+    for course in courses:
+        dcode = course.get("dcode")
+        dname = departments.get(dcode, dcode)
+        counts[dname] = counts.get(dname, 0) + 1
+
+    return jsonify(counts)
+
+# --- At-Risk Students per Major Chart ---
+@analytics_bp.route("/api/charts/at-risk-by-major", methods=["GET"])
+def at_risk_by_major():
+    students = list(db.student.find())
+    departments = {d["dcode"]: d["dname"] for d in db.department.find()}
+
+    counts = {}
+    for student in students:
+        ssn = student["ssn"]
+        transcripts = find_transcripts(ssn)
+        active_courses = [t for t in transcripts if not t.get("grade") or t["grade"] in ["F", None]]
+        if len(active_courses) >= 2:
+            major_code = student.get("major")
+            major_name = departments.get(major_code, major_code)
+            counts[major_name] = counts.get(major_name, 0) + 1
+
+    return jsonify(counts)
