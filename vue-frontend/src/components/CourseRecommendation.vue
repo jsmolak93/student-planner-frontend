@@ -1,34 +1,41 @@
 <template>
-  <div class="recommendation-container">
-    <h1>Course Recommendations</h1>
+  <div class="page-container">
+    <img src="/mason_logo.png" alt="Background" class="background-overlay" />
+    <img src="/mason_mascot.png" alt="GMU Logo" class="logo-top-left" />
 
-    <div class="input-group">
-      <input
-        v-model="ssn"
-        type="number"
-        placeholder="Enter Student SSN..."
-        class="input-field"
-      />
-      <button @click="fetchRecommendations" class="primary-button">
-        Get Recommendations
-      </button>
-    </div>
+    <div class="form-wrapper">
+      <h1 class="page-title">Course Recommendations</h1>
 
-    <div v-if="recommendedCourses.length > 0" class="results">
-      <h2>Recommended Courses</h2>
-      <ul>
-        <li v-for="course in recommendedCourses" :key="`${course.dcode}-${course.cno}`">
-          <strong>{{ course.dcode }} {{ course.cno }}</strong> - {{ course.title }}
-        </li>
-      </ul>
-    </div>
+      <div class="input-group">
+        <input
+          v-model="ssn"
+          type="number"
+          placeholder="Enter Student SSN..."
+          class="input-field"
+        />
+        <button @click="fetchRecommendations" class="primary-button">
+          Get Recommendations
+        </button>
+      </div>
 
-    <div v-else-if="recommendationsFetched" class="no-results">
-      <p>No recommendations found for this student.</p>
+      <div v-if="recommendedCourses.length > 0" class="results">
+        <h2>Recommended Courses</h2>
+        <ul>
+          <li v-for="course in recommendedCourses" :key="`${course.dcode}-${course.cno}`">
+            <strong>{{ course.dcode }} {{ course.cno }}</strong> - {{ course.title }}
+          </li>
+        </ul>
+      </div>
+
+      <div v-else-if="recommendationsFetched" class="no-results">
+        <p>No recommendations found for this student.</p>
+      </div>
+
+      <RouterLink to="/" class="home-link">← Back to Home</RouterLink>
     </div>
-    <RouterLink to="/" class="home-link">← Back to Home</RouterLink>
   </div>
 </template>
+
 
 <script>
 import axios from 'axios';
@@ -63,10 +70,50 @@ export default {
 </script>
 
 <style scoped>
-.recommendation-container {
-  padding: 30px;
-  background-color: #ffffff;
+.page-container {
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+  padding: 40px;
+  box-sizing: border-box;
+}
+
+.background-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: -1;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  object-position: center;
+  pointer-events: none;
+}
+
+.logo-top-left {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 200px;
+  height: auto;
+  z-index: 0;
+}
+
+.form-wrapper {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: center;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  color: #006633;
+  margin-bottom: 30px;
 }
 
 .input-group {
@@ -82,8 +129,8 @@ export default {
 
 .primary-button {
   padding: 10px 20px;
-  background-color: #006633; /* GMU Green */
-  color: #ffcc33; /* GMU Gold */
+  background-color: #006633;
+  color: #ffcc33;
   font-weight: bold;
   border: none;
   border-radius: 5px;
@@ -91,7 +138,7 @@ export default {
 }
 
 .primary-button:hover {
-  background-color: #004d26; /* Darker GMU green */
+  background-color: #004d26;
   color: #ffffff;
 }
 
@@ -114,6 +161,7 @@ export default {
   font-size: 1rem;
   color: #666;
 }
+
 .home-link {
   display: block;
   margin-top: 40px;
@@ -122,4 +170,7 @@ export default {
   font-weight: bold;
 }
 
+.home-link:hover {
+  text-decoration: underline;
+}
 </style>

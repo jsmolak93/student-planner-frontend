@@ -1,25 +1,27 @@
 <template>
-  <div class="page-container">
-    <h1 class="page-title">Add New Student</h1>
+  <div class="page-with-logo">
+    <img src="/mason_logo.png" alt="GMU Background" class="background-overlay" />
+    <img src="/mason_mascot.png" alt="Top Left Logo" class="logo-top-left" />
+    <div class="form-wrapper">
+      <h1 class="page-title">Add New Student</h1>
+      <div class="student-form">
+        <input v-model="student.ssn" placeholder="Student SSN" type="number" required />
+        <input v-model="student.name" placeholder="Full Name" required />
+        <input v-model="student.major" placeholder="Major Dcode (e.g., D23)" required />
 
-    <div class="student-form">
-      <input v-model="student.ssn" placeholder="Student SSN" type="number" required />
-      <input v-model="student.name" placeholder="Full Name" required />
-      <input v-model="student.major" placeholder="Major Dcode (e.g., D23)" required />
+        <select v-model="student.status">
+          <option disabled value="">Select Status</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="">(None)</option>
+        </select>
 
-      <select v-model="student.status">
-        <option disabled value="">Select Status</option>
-        <option value="active">Active</option>
-        <option value="inactive">Inactive</option>
-        <option value="">(None)</option>
-      </select>
+        <button @click="addStudent" class="nav-button">Add Student</button>
+      </div>
 
-      <button @click="addStudent" class="nav-button">Add Student</button>
+      <div v-if="message" class="message">{{ message }}</div>
+      <RouterLink to="/" class="home-link">← Back to Home</RouterLink>
     </div>
-
-    <div v-if="message" class="message">{{ message }}</div>
-
-    <RouterLink to="/" class="home-link">← Back to Home</RouterLink>
   </div>
 </template>
 
@@ -63,22 +65,55 @@ export default {
 </script>
 
 <style scoped>
-.page-container {
+.page-with-logo {
+  position: relative;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden; 
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  margin: 0;
+}
+
+.background-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover; /* fill entire background area */
+  object-position: center;
+  z-index: -1;
+  pointer-events: none;
+}
+.logo-top-left {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 200px; /* adjust size as needed */
+  height: auto;
+  z-index: 1;
+}
+
+.form-wrapper {
+  background-color: rgba(255, 255, 255, 0.95);
   padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: center;
-  background-color: #ffffff;
-  min-height: 100vh;
+  max-width: 500px;
+  width: 100%;
 }
 
 .page-title {
   font-size: 2.5rem;
-  color: #006633; /* Mason Green */
+  color: #006633;
   margin-bottom: 30px;
 }
 
 .student-form {
-  max-width: 400px;
-  margin: 0 auto;
   display: flex;
   flex-direction: column;
 }
