@@ -15,6 +15,7 @@ def get_student(ssn):
     student["_id"] = str(student["_id"])  # Make ObjectId JSON serializable
     return jsonify(student)
 
+
 # Add a new student
 @students_bp.route("/api/students", methods=["POST"])
 def add_student():

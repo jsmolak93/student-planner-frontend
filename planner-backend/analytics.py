@@ -107,19 +107,25 @@ def at_risk_students():
     for student in students:
         ssn = student["ssn"]
         transcripts = find_transcripts(ssn)
+        enrollments = list(db.enrollment.find({"ssn": ssn})) 
 
-        # Count risky courses: either F or missing grade
+        # Risky if they have any F or null grades
         risk_courses = [t for t in transcripts if t.get("grade") in ["F", None]]
 
-        if len(risk_courses) >= 1: 
+        # Extra risk: if not currently enrolled in any class
+        currently_enrolled = len(enrollments) == 0
+
+        if len(risk_courses) >= 1 or currently_enrolled:
             risk_list.append({
                 "ssn": ssn,
                 "name": student.get("name", "Unknown"),
                 "major": student.get("major", "Unknown"),
-                "risk_courses": len(risk_courses)
+                "risk_courses": len(risk_courses),
+                "currently_enrolled": not currently_enrolled 
             })
 
     return jsonify(risk_list)
+
 
 
 # Query 4: Show course dependency for a selected major
@@ -166,6 +172,62 @@ def get_course_dependency(dcode):
         "major": {"dcode": dcode, "dname": department_name},
         "course_order": course_order_with_titles
     })
+
+# Query 5: Instructor Workload Analysis (Courses Taught by Each Instructor)
+@analytics_bp.route("/api/instructor-workload", methods=["GET"])
+def instructor_course_load():
+    classes = list(db["class"].find())
+    faculty = {f["ssn"]: f["name"] for f in db.faculty.find()}
+    course_map = {(c["dcode"], c["cno"]): c["title"] for c in db.course.find()}
+
+    instructor_data = defaultdict(lambda: {"courses": [], "courses_taught": 0})
+
+    for cls in classes:
+        instr_ssn = cls.get("instr")
+        course_title = course_map.get((cls["dcode"], cls["cno"]), "Unknown Course")
+        if instr_ssn is not None:
+            instructor_data[instr_ssn]["courses"].append(course_title)
+            instructor_data[instr_ssn]["courses_taught"] += 1
+
+    result = [
+        {
+            "name": faculty.get(ssn, f"Instructor {ssn}"),
+            "courses_taught": data["courses_taught"],
+            "courses": data["courses"]
+        }
+        for ssn, data in instructor_data.items()
+    ]
+
+    return jsonify(result)
+
+
+
+# Query 6: Units Taken Per Student (Completed Courses Only)
+@analytics_bp.route("/api/student-units", methods=["GET"])
+def student_units():
+    students = {s["ssn"]: s["name"] for s in db.student.find()}
+    transcripts = list(db.transcript.find())
+    courses = {(c["dcode"], c["cno"]): c.get("units", 0) for c in db.course.find()}
+
+    units_by_student = defaultdict(int)
+
+    for t in transcripts:
+        if t.get("grade") not in ["F", None]:
+            key = (t["dcode"], t["cno"])
+            units = courses.get(key, 0)
+            units_by_student[t["ssn"]] += units
+
+    result = [
+        {
+            "name": students.get(ssn, f"Student {ssn}"),
+            "ssn": ssn,
+            "units": units
+        }
+        for ssn, units in units_by_student.items()
+    ]
+
+    return jsonify(result)
+
 
 #------------------------------------------------------------------------------#
 
@@ -214,3 +276,35 @@ def at_risk_by_major():
             counts[major_name] = counts.get(major_name, 0) + 1
 
     return jsonify(counts)
+
+# Chart: Instructor Workload by Name
+@analytics_bp.route("/api/charts/instructor-workload", methods=["GET"])
+def chart_instructor_workload():
+    classes = list(db["class"].find())
+    faculty = {f["ssn"]: f["name"] for f in db.faculty.find()}
+
+    counts = defaultdict(int)
+    for cls in classes:
+        instr = cls.get("instr")
+        if instr is not None:
+            counts[faculty.get(instr, f"Instructor {instr}")] += 1
+
+    return jsonify(dict(counts))
+
+
+# Chart: Student Units Completed
+@analytics_bp.route("/api/charts/student-units", methods=["GET"])
+def chart_student_units():
+    students = {s["ssn"]: s["name"] for s in db.student.find()}
+    transcripts = list(db.transcript.find())
+    courses = {(c["dcode"], c["cno"]): c.get("units", 0) for c in db.course.find()}
+
+    units_by_student = defaultdict(int)
+    for t in transcripts:
+        if t.get("grade") not in ["F", None]:
+            key = (t["dcode"], t["cno"])
+            units_by_student[t["ssn"]] += courses.get(key, 0)
+
+    result = {students.get(ssn, f"Student {ssn}"): units for ssn, units in units_by_student.items()}
+    return jsonify(result)
+

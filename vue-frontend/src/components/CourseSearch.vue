@@ -32,10 +32,13 @@
             <tr v-for="(course, index) in results" :key="index">
               <td>{{ course.dcode }}</td>
               <td>{{ course.cno }}</td>
-              <td>{{ course.title.replace(/_/g, ' ') }}</td>
+              <td>{{ formatTitle(course.title) }}</td>
               <td>{{ course.units }}</td>
               <td>
-                <button v-if="studentId" @click="addToPlan(course.dcode, course.cno)" class="small-button">
+                <button 
+                  v-if="studentId" 
+                  @click="addToPlan(course.dcode, course.cno, course.title)" 
+                  class="small-button">
                   Add to Planner
                 </button>
               </td>
@@ -70,7 +73,13 @@ export default {
     };
   },
   methods: {
-      async searchCourses() {
+      formatTitle(rawTitle) {
+        return rawTitle
+          .split('_')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+          .join(' ');
+      },
+        async searchCourses() {
         try {
           const response = await axios.get('/api/courses');
           const allCourses = response.data || [];
@@ -86,11 +95,11 @@ export default {
           console.error(err);
         }
       },
-      async addToPlan(dcode, cno) {
+      async addToPlan(dcode, cno, title) {
         try {
           await axios.post(`/api/students/${this.studentId}/plan`, {
-            dcode,
-            cno
+            title: title.toLowerCase().replace(/\s+/g, '_'), // match stored format
+            cno: parseInt(cno)
           });
           alert("Course added to planner.");
         } catch (err) {
@@ -99,8 +108,8 @@ export default {
         }
       }
     }
-
 };
+
 </script>
 
 <style scoped>

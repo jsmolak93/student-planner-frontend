@@ -7,6 +7,8 @@
       <button @click="selectedChart = 'students'">Students Per Major</button>
       <button @click="selectedChart = 'courses'">Courses Per Department</button>
       <button @click="selectedChart = 'atRisk'">At-Risk Students</button>
+      <button @click="selectedChart = 'instructorWorkload'">Instructor Workload</button>
+      <button @click="selectedChart = 'studentUnits'">Student Units</button>
     </div>
 
     <!-- Chart Rendering -->
@@ -23,7 +25,17 @@
 
     <div class="chart-wrapper" v-if="selectedChart === 'atRisk'">
       <h2>At-Risk Students Per Major</h2>
-      <Bar v-if="atRiskChartData" :data="atRiskChartData" :options="chartOptions" />
+      <Doughnut v-if="atRiskChartData" :data="atRiskChartData" :options="chartOptions" />
+    </div>
+
+    <div class="chart-wrapper" v-if="selectedChart === 'instructorWorkload'">
+      <h2>Instructor Workload</h2>
+      <Pie v-if="instructorWorkloadData" :data="instructorWorkloadData" :options="chartOptions" />
+    </div>
+
+    <div class="chart-wrapper" v-if="selectedChart === 'studentUnits'">
+      <h2>Student Units Completed</h2>
+      <Bar v-if="studentUnitsData" :data="studentUnitsData" :options="chartOptions" />
     </div>
     <div class="back-home-wrapper">
       <RouterLink to="/" class="home-link">← Back to Home</RouterLink>
@@ -33,7 +45,7 @@
 </template>
 
 <script>
-import { Bar, Pie } from 'vue-chartjs';
+import { Bar, Doughnut, Pie } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale } from 'chart.js';
 import axios from 'axios';
 
@@ -41,13 +53,16 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, 
 
 export default {
   name: 'AnalyticsCharts',
-  components: { Bar, Pie },
+  components: { Bar, Pie, Doughnut},
   data() {
     return {
       selectedChart: '',
       studentsChartData: null,
       coursesChartData: null,
       atRiskChartData: null,
+      instructorWorkloadData: null,
+      studentUnitsData: null,
+
       chartOptions: {
         responsive: true,
         maintainAspectRatio: false,
@@ -69,7 +84,9 @@ export default {
       await Promise.all([
         this.loadStudentsPerMajor(),
         this.loadCoursesPerDepartment(),
-        this.loadAtRiskStudents()
+        this.loadAtRiskStudents(),  
+        this.loadInstructorWorkload(),
+        this.loadStudentUnits()
       ]);
     } catch (err) {
       console.error('Error mounting charts', err);
@@ -83,8 +100,14 @@ export default {
         const counts = res.data;
 
         this.studentsChartData = {
-          labels: Object.keys(counts),
-          datasets: [{
+          labels: Object.keys(counts).map(label =>
+            label
+              .split('_')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ')
+            ),
+
+            datasets: [{
             label: 'Students',
             data: Object.values(counts),
             backgroundColor: '#006633'
@@ -101,13 +124,26 @@ export default {
         const counts = res.data;
 
         this.coursesChartData = {
-          labels: Object.keys(counts),
-          datasets: [{
+          labels: Object.keys(counts).map(label =>
+            label
+              .split('_')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ')
+            ),
+            datasets: [{
             label: 'Courses',
             data: Object.values(counts),
             backgroundColor: [
-              '#ffcc33', '#006633', '#003300', '#009966', '#33cc33',
-              '#669900', '#3399ff', '#003366', '#990000', '#cc3300'
+              '#E6194B', // Red
+              '#3CB44B', // Green
+              '#4363D8', // Blue
+              '#F58231', // Orange
+              '#911EB4', // Purple
+              '#46F0F0', // Cyan
+              '#FFD700', // Gold
+              '#000000', // Black
+              '#9A6324', // Brown
+              '#42D4F4', // Sky Blue
             ]
           }]
         };
@@ -122,15 +158,78 @@ export default {
         const counts = res.data;
 
         this.atRiskChartData = {
-          labels: Object.keys(counts),
+          labels: Object.keys(counts).map(label =>
+            label
+              .split('_')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ')
+          ),
           datasets: [{
             label: 'At-Risk Students',
             data: Object.values(counts),
-            backgroundColor: '#cc0000'
+            backgroundColor: [
+              '#E6194B', // Red
+              '#3CB44B', // Green
+              '#4363D8', // Blue
+              '#FFD700', // Yellow
+              '#F58231', // Orange
+              '#000000', // Black
+              '#9A6324', // Brown
+              '#42D4F4', // Cyan
+            ]
           }]
         };
       } catch (err) {
         console.error('Error loading at-risk students', err);
+      }
+    },
+    async loadInstructorWorkload() {
+      try {
+        const res = await axios.get("/api/charts/instructor-workload");
+        const counts = res.data;
+        this.instructorWorkloadData = {
+          labels: Object.keys(counts),
+          datasets: [{
+            label: "Courses Taught",
+            data: Object.values(counts),
+            backgroundColor: [
+              '#E6194B', // Vivid Red
+              '#3CB44B', // Vivid Green
+              '#FFE119', // Bright Yellow
+              '#0082C8', // Strong Blue
+              '#F58231', // Orange
+              '#46F0F0', // Cyan
+              '#F032E6', // Magenta
+              '#D2F53C', // Lime
+              '#008080', // Teal
+              '#AA6E28', // Brown
+              '#800000', // Maroon
+              '#000075', // Navy Blue
+              '#808000', // Olive
+              '#808080', // Gray
+              '#000000'  // Black
+            ]
+          }]
+        };
+      } catch (err) {
+        console.error("Failed to load instructor workload", err);
+      }
+    },
+
+    async loadStudentUnits() {
+      try {
+        const res = await axios.get("/api/charts/student-units");
+        const counts = res.data;
+        this.studentUnitsData = {
+          labels: Object.keys(counts),
+          datasets: [{
+            label: "Units Completed",
+            data: Object.values(counts),
+            backgroundColor: "#ffcc33"
+          }]
+        };
+      } catch (err) {
+        console.error("Failed to load student units", err);
       }
     }
   }
@@ -166,10 +265,10 @@ export default {
   color: #ffffff;
 }
 .chart-wrapper {
-  width: 500px;   /* you can adjust this number */
-  height: 400px;  /* you can adjust this number */
+  width: 500px;   
+  height: 400px;  
   margin: 0 auto;
-  position: relative; /* Chart.js requires this for sizing */
+  position: relative;
 }
 
 .charts-page {

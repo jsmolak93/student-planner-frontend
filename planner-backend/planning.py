@@ -9,7 +9,7 @@ planning_bp = Blueprint("planning", __name__)
 @planning_bp.route("/api/students/<int:ssn>/plan", methods=["POST"])
 def add_course_to_plan(ssn):
     data = request.json
-    title = data.get("title")  # <-- use title instead of dcode
+    title = data.get("title")
     cno = data.get("cno")
 
     if not title or not cno:
@@ -19,9 +19,9 @@ def add_course_to_plan(ssn):
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
-    # Lookup course by title and cno
+    # Find matching course
     course = db.course.find_one({
-        "title": title.replace(" ", "_").lower(),  # match the stored format
+        "title": title.replace(" ", "_").lower(),
         "cno": int(cno)
     })
 
@@ -30,20 +30,25 @@ def add_course_to_plan(ssn):
 
     dcode = course["dcode"]
 
-    if "planned_courses" not in student:
-        student["planned_courses"] = []
+    # Check if already planned
+    existing = db.student_plan.find_one({
+        "ssn": ssn,
+        "dcode": dcode,
+        "cno": int(cno)
+    })
 
-    planned_course = {"dcode": dcode, "cno": int(cno)}
-
-    if planned_course in student["planned_courses"]:
+    if existing:
         return jsonify({"error": "Course already planned"}), 400
 
-    db.student.update_one(
-        {"ssn": ssn},
-        {"$push": {"planned_courses": planned_course}}
-    )
+    # Insert into student_plan
+    db.student_plan.insert_one({
+        "ssn": ssn,
+        "dcode": dcode,
+        "cno": int(cno)
+    })
 
     return jsonify({"message": "Course added to plan!"})
+
 
 
 # Get a student's planned courses
@@ -53,10 +58,10 @@ def get_planned_courses(ssn):
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
-    planned_courses = student.get("planned_courses", [])
+    planned_raw = list(db.student_plan.find({"ssn": ssn}))
     
     detailed_courses = []
-    for item in planned_courses:
+    for item in planned_raw:
         course = find_course(item["dcode"], item["cno"])
         if course:
             detailed_courses.append({
@@ -78,16 +83,13 @@ def remove_course_from_plan(ssn):
     if not dcode or not cno:
         return jsonify({"error": "dcode and cno are required"}), 400
 
-    student = find_student(ssn)
-    if not student:
-        return jsonify({"error": "Student not found"}), 404
+    result = db.student_plan.delete_one({
+        "ssn": ssn,
+        "dcode": dcode,
+        "cno": int(cno)
+    })
 
-    result = db.student.update_one(
-        {"ssn": ssn},
-        {"$pull": {"planned_courses": {"dcode": dcode, "cno": int(cno)}}}
-    )
-
-    if result.modified_count == 0:
+    if result.deleted_count == 0:
         return jsonify({"error": "Course not found in plan"}), 404
 
     return jsonify({"message": "Course removed from plan!"})

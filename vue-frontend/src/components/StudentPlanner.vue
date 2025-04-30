@@ -71,7 +71,7 @@ export default {
       }
       try {
         await axios.post(`http://localhost:5000/api/students/${this.ssn}/plan`, {
-          title: this.newTitle.toLowerCase(),  // convert to lowercase
+          title: this.newTitle.toLowerCase().replace(/\s+/g, "_"),
           cno: parseInt(this.newCno)
         });
         this.loadPlan();
@@ -100,29 +100,33 @@ export default {
 </script>
 
 <style scoped>
+
 .page-with-logo {
   position: relative;
-  height: 100vh;
+  min-height: 100vh;
   width: 100vw;
-  overflow: hidden;
+  background: linear-gradient(to right, #1d5934 50%, #f4c800 50%);
+  padding: 40px 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  z-index: 0;
   display: flex;
   justify-content: center;
-  align-items: center;
-  padding: 0;
-  margin: 0;
+  align-items: flex-start;
 }
 
 .background-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
+  z-index: -1;
   width: 100vw;
   height: 100vh;
   object-fit: cover;
   object-position: center;
-  z-index: -1;
   pointer-events: none;
 }
+
 
 .logo-top-left {
   position: absolute;
