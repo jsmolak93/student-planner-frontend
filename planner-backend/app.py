@@ -11,7 +11,6 @@ from explore import explore_bp
 app = Flask(__name__)
 CORS(app)
 
-# Register blueprints
 app.register_blueprint(students_bp)
 app.register_blueprint(courses_bp)
 app.register_blueprint(planning_bp)

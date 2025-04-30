@@ -15,8 +15,12 @@
           <option value="inactive">Inactive</option>
           <option value="">(None)</option>
         </select>
-
         <button @click="addStudent" class="nav-button">Add Student</button>
+        <!-- Add this inside your .form-wrapper, below the Add Student button -->
+        <button @click="deleteStudent" class="nav-button" style="background-color: #cc0000; margin-top: 10px;">
+          Delete Student
+        </button>
+
       </div>
 
       <div v-if="message" class="message">{{ message }}</div>
@@ -59,6 +63,21 @@ export default {
     },
     resetForm() {
       this.student = { ssn: '', name: '', major: '', status: '' };
+    },
+    async deleteStudent() {
+      if (!this.student.ssn) {
+        this.message = "Please enter the SSN of the student to delete.";
+        return;
+      }
+
+      try {
+        const response = await axios.delete(`http://localhost:5000/api/students/${this.student.ssn}`);
+        this.message = response.data.message || "Student deleted successfully.";
+        this.resetForm();
+      } catch (error) {
+        this.message = error.response?.data?.error || "Error deleting student.";
+        console.error(error);
+      }
     }
   }
 };

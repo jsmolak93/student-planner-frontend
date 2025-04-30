@@ -31,12 +31,12 @@ def get_eligible_courses(ssn):
         if course_key in completed_courses:
             continue
 
-        # Fetch prerequisites for this course
+        # Gets prerequisites for this course
         prereqs = find_prereqs(course["dcode"], course["cno"])
 
         # Check if all prerequisites have been completed
         if all((p["pcode"], p["pno"]) in completed_courses for p in prereqs):
-            # If so, add the course to the eligible list (format title nicely)
+            # If so, add the course to the eligible course
             eligible_courses.append({
                 "dcode": course["dcode"],
                 "cno": course["cno"],
@@ -208,21 +208,31 @@ def instructor_course_load():
 # Query 6: Units Taken Per Student (Completed Courses Only)
 @analytics_bp.route("/api/student-units", methods=["GET"])
 def student_units():
+    # Create a dictionary mapping student SSNs to their names
     students = {s["ssn"]: s["name"] for s in db.student.find()}
+    
+    # Fetch all transcript entries (records of student grades in courses)
     transcripts = list(db.transcript.find())
+    
+    # Create a dictionary mapping (dcode, cno) to number of units for each course
     courses = {(c["dcode"], c["cno"]): c.get("units", 0) for c in db.course.find()}
 
+    # Initialize a dictionary to accumulate units per student
     units_by_student = defaultdict(int)
 
+    # Iterate through transcripts and add units for passed courses
     for t in transcripts:
+        # Only consider courses with a passing grade (exclude F and None)
         if t.get("grade") not in ["F", None]:
             key = (t["dcode"], t["cno"])
             units = courses.get(key, 0)
+            # Accumulate the units by student SSN
             units_by_student[t["ssn"]] += units
 
+    # Prepare the final result as a list of dictionaries
     result = [
         {
-            "name": students.get(ssn, f"Student {ssn}"),
+            "name": students.get(ssn, f"Student {ssn}"),  # fallback name if missing
             "ssn": ssn,
             "units": units
         }
@@ -230,6 +240,7 @@ def student_units():
     ]
 
     return jsonify(result)
+
 
 
 #------------------------------------------------------------------------------#
