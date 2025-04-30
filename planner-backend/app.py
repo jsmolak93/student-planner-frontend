@@ -6,6 +6,7 @@ from courses import courses_bp
 from planning import planning_bp
 from analytics import analytics_bp
 from departments import departments_bp
+from explore import explore_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -16,6 +17,7 @@ app.register_blueprint(courses_bp)
 app.register_blueprint(planning_bp)
 app.register_blueprint(analytics_bp)
 app.register_blueprint(departments_bp)
+app.register_blueprint(explore_bp)
 
 
 if __name__ == "__main__":

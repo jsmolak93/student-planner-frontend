@@ -4,7 +4,52 @@ from db import db, find_student, find_course, find_department, find_prereqs, fin
 
 analytics_bp = Blueprint("analytics", __name__)
 
-# For general course recommendations
+# Query 1: Find eligible courses a student can take based on completed prerequisites
+@analytics_bp.route("/api/eligible-courses/<int:ssn>", methods=["GET"])
+def get_eligible_courses(ssn):
+    # Look up the student by SSN
+    student = find_student(ssn)
+    if not student:
+        return jsonify({"error": "Student not found"}), 404
+
+    # Collect all courses the student has completed with a passing grade
+    completed_courses = set()
+    transcripts = find_transcripts(ssn)
+    for t in transcripts:
+        if t.get("grade") and t["grade"] not in ["F", None]:
+            completed_courses.add((t["dcode"], t["cno"]))
+
+    eligible_courses = []
+
+    # Get the full list of available courses
+    all_courses = list(db.course.find())
+
+    for course in all_courses:
+        course_key = (course["dcode"], course["cno"])
+
+        # Skip courses the student has already completed
+        if course_key in completed_courses:
+            continue
+
+        # Fetch prerequisites for this course
+        prereqs = find_prereqs(course["dcode"], course["cno"])
+
+        # Check if all prerequisites have been completed
+        if all((p["pcode"], p["pno"]) in completed_courses for p in prereqs):
+            # If so, add the course to the eligible list (format title nicely)
+            eligible_courses.append({
+                "dcode": course["dcode"],
+                "cno": course["cno"],
+                "title": course["title"].replace("_", " ").title()
+            })
+
+    return jsonify({
+    "major": student.get("major"),
+    "courses": eligible_courses
+})
+
+
+# Query 2: Recommend courses needed to fulfill degree requirements
 @analytics_bp.route("/api/recommend-courses/<int:ssn>", methods=["GET"])
 def recommend_courses_for_student(ssn):
     student = find_student(ssn)
@@ -32,69 +77,8 @@ def recommend_courses_for_student(ssn):
             recommended.append({
                 "dcode": course["dcode"],
                 "cno": course["cno"],
-                "title": course["title"]
+                "title": course["title"].replace("_", " ").title()
             })
-
-    return jsonify(recommended)
-
-# ------------------------------------------------------
-
-# Query 1: Find eligible courses a student can take based on completed prerequisites
-@analytics_bp.route("/api/eligible-courses/<int:ssn>", methods=["GET"])
-def get_eligible_courses(ssn):
-    student = find_student(ssn)
-    if not student:
-        return jsonify({"error": "Student not found"}), 404
-
-    completed_courses = set()
-    transcripts = find_transcripts(ssn)
-    for t in transcripts:
-        if t.get("grade") and t["grade"] not in ["F", None]:
-            completed_courses.add((t["dcode"], t["cno"]))
-
-    eligible_courses = []
-    all_courses = list(db.course.find())
-
-    for course in all_courses:
-        course_key = (course["dcode"], course["cno"])
-
-        # NEW: Skip if student already completed the course
-        if course_key in completed_courses:
-            continue
-
-        prereqs = find_prereqs(course["dcode"], course["cno"])
-
-        if all((p["pcode"], p["pno"]) in completed_courses for p in prereqs):
-            eligible_courses.append({
-                "dcode": course["dcode"],
-                "cno": course["cno"],
-                "title": course["title"]
-            })
-
-    return jsonify({
-    "major": student.get("major"),
-    "courses": eligible_courses
-})
-
-
-# Query 2: Recommend courses needed to fulfill degree requirements
-@analytics_bp.route("/api/degree-requirements/<int:ssn>", methods=["GET"])
-def recommend_degree_courses(ssn):
-    student = find_student(ssn)
-    if not student:
-        return jsonify({"error": "Student not found"}), 404
-
-    major = student.get("major")
-    if not major:
-        return jsonify({"error": "Student major not found"}), 404
-
-    major_courses = list(db.course.find({"dcode": major}))
-    completed = {(t["dcode"], t["cno"]) for t in find_transcripts(ssn) if t.get("grade") and t["grade"] not in ["F", None]}
-
-    recommended = []
-    for course in major_courses:
-        if (course["dcode"], course["cno"]) not in completed:
-            recommended.append({"dcode": course["dcode"], "cno": course["cno"], "title": course["title"]})
 
     return jsonify(recommended)
 
@@ -131,25 +115,33 @@ def at_risk_students():
 # Query 4: Show course dependency for a selected major
 @analytics_bp.route("/api/course-dependency/<string:dcode>", methods=["GET"])
 def get_course_dependency(dcode):
+    # Initialize an adjacency list for the graph and a set to track all involved courses
     graph = defaultdict(list)
     all_courses = set()
+
+    # Get department name for the given department code (dcode)
     department = find_department(dcode)
     department_name = department.get("dname") if department else None
 
+    # Fetch all prerequisite relationships within the department
     prereqs = list(db.prereq.find({"dcode": dcode}))
     for prereq in prereqs:
         graph[(prereq["pcode"], prereq["pno"])].append((prereq["dcode"], prereq["cno"]))
+        
         all_courses.add((prereq["pcode"], prereq["pno"]))
         all_courses.add((prereq["dcode"], prereq["cno"]))
 
+    # Initialize in-degree count for each course
     in_degree = defaultdict(int)
     for prereqs_list in graph.values():
         for course in prereqs_list:
             in_degree[course] += 1
 
+    # Start with courses that have no prerequisites (in-degree == 0)
     queue = deque([c for c in all_courses if in_degree[c] == 0])
     order = []
 
+    # algorithm for topological sort
     while queue:
         curr = queue.popleft()
         order.append(curr)
@@ -158,37 +150,48 @@ def get_course_dependency(dcode):
             if in_degree[neighbor] == 0:
                 queue.append(neighbor)
 
+    # Fetch and format course titles for each course in the sorted order
     course_order_with_titles = []
     for d, c in order:
-        course = find_course(d, c)  
+        course = find_course(d, c)
         title = course["title"] if course else "Unknown"
         course_order_with_titles.append({
             "dcode": d,
             "cno": c,
-            "title": title
+            "title": course["title"].replace("_", " ").title()
         })
 
+    # Return department metadata and the topologically sorted list of courses
     return jsonify({
         "major": {"dcode": dcode, "dname": department_name},
         "course_order": course_order_with_titles
     })
 
-# Query 5: Instructor Workload Analysis (Courses Taught by Each Instructor)
+# Query 5: Instructor Workload 
 @analytics_bp.route("/api/instructor-workload", methods=["GET"])
 def instructor_course_load():
+    # Fetch all class records
     classes = list(db["class"].find())
+
+    # map from instructor SSNs to their names
     faculty = {f["ssn"]: f["name"] for f in db.faculty.find()}
+
+    # Create a mapping from (dcode, cno) to course title for quick lookup
     course_map = {(c["dcode"], c["cno"]): c["title"] for c in db.course.find()}
 
+    # Initialize a data structure to store each instructor's course info
     instructor_data = defaultdict(lambda: {"courses": [], "courses_taught": 0})
 
+    # Iterate over each class to populate instructor workload
     for cls in classes:
-        instr_ssn = cls.get("instr")
-        course_title = course_map.get((cls["dcode"], cls["cno"]), "Unknown Course")
+        instr_ssn = cls.get("instr")  # Get the instructor's SSN
+        course_title = course_map.get((cls["dcode"], cls["cno"]), "Unknown Course")  # Look up the course title
+
         if instr_ssn is not None:
             instructor_data[instr_ssn]["courses"].append(course_title)
-            instructor_data[instr_ssn]["courses_taught"] += 1
+            instructor_data[instr_ssn]["courses_taught"] += 1  # Count how many courses they teach
 
+    # Build the result list with instructor name, total courses taught, and course titles
     result = [
         {
             "name": faculty.get(ssn, f"Instructor {ssn}"),
@@ -198,8 +201,8 @@ def instructor_course_load():
         for ssn, data in instructor_data.items()
     ]
 
+    # Return the list of instructors with their teaching load details
     return jsonify(result)
-
 
 
 # Query 6: Units Taken Per Student (Completed Courses Only)

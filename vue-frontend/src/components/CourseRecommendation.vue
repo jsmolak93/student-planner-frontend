@@ -57,7 +57,7 @@ export default {
       }
 
       try {
-        const response = await axios.get(`/api/recommend-courses/${this.ssn}`);
+        const response = await axios.get(`/api/explore-courses/${this.ssn}`);
         this.recommendedCourses = response.data;
         this.recommendationsFetched = true;
       } catch (error) {

@@ -98,7 +98,7 @@ export default {
       async addToPlan(dcode, cno, title) {
         try {
           await axios.post(`/api/students/${this.studentId}/plan`, {
-            title: title.toLowerCase().replace(/\s+/g, '_'), // match stored format
+            title: title.toLowerCase().replace(/\s+/g, '_'),
             cno: parseInt(cno)
           });
           alert("Course added to planner.");
@@ -129,7 +129,7 @@ export default {
   position: absolute;
   top: 20px;
   left: 20px;
-  width: 200px;  /* Try increasing */
+  width: 200px; 
   height: auto;
   z-index: 0;
 }
@@ -139,7 +139,7 @@ export default {
   padding: 40px;
   text-align: center;
   min-height: 100vh;
-  background: linear-gradient(to right, #1d5934 50%, #f4c800 50%); /* GMU green & gold split */
+  background: linear-gradient(to right, #1d5934 50%, #f4c800 50%); 
   position: relative;
   z-index: 0;
 }
@@ -156,7 +156,7 @@ export default {
   border-radius: 12px;
   box-shadow: 0 0 10px rgba(0,0,0,0.1);
   text-align: center;
-  max-width: 700px; /* Reduce from 900px or 100% */
+  max-width: 700px; 
   width: 90%;
   margin: 0 auto;
 }

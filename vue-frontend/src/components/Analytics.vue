@@ -252,7 +252,7 @@ export default {
           courses: item.courses.map(title =>
             title
               .replace(/_/g, ' ')
-              .replace(/\b\w/g, char => char.toUpperCase()) // Capitalize each word
+              .replace(/\b\w/g, char => char.toUpperCase()) 
           )
         }));
         this.queryExecuted = true;
