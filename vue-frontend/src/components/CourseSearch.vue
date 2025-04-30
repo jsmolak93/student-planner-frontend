@@ -21,18 +21,18 @@
         <table>
           <thead>
             <tr>
-              <th>Dcode</th>
-              <th>Cno</th>
+              <th>Department</th>
+              <th>Course Number</th>
               <th>Title</th>
               <th>Units</th>
-              <th>Actions</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="(course, index) in results" :key="index">
               <td>{{ course.dcode }}</td>
               <td>{{ course.cno }}</td>
-              <td>{{ course.title }}</td>
+              <td>{{ course.title.replace(/_/g, ' ') }}</td>
               <td>{{ course.units }}</td>
               <td>
                 <button v-if="studentId" @click="addToPlan(course.dcode, course.cno)" class="small-button">

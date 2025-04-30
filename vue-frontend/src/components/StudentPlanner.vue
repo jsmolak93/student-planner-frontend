@@ -12,7 +12,7 @@
       </div>
 
       <div class="plan-form">
-        <input v-model="newDcode" placeholder="Course Dcode (e.g., D23)" />
+        <input v-model="newTitle" placeholder="Course Title (e.g., art history)" />
         <input v-model="newCno" placeholder="Course Number (e.g., 101)" type="number" />
         <button @click="addCourse" class="nav-button">Add Course to Plan</button>
       </div>
@@ -21,7 +21,7 @@
         <h2 class="sub-title">Planned Courses</h2>
         <ul>
           <li v-for="(course, index) in plannedCourses" :key="index" class="course-item">
-            <span>{{ course.dcode }} {{ course.cno }}</span>
+            <span>{{ course.title.replace(/_/g, ' ') }} ({{ course.dcode }} {{ course.cno }})</span>
             <button @click="removeCourse(course.dcode, course.cno)" class="remove-button">Remove</button>
           </li>
         </ul>
@@ -65,13 +65,13 @@ export default {
       }
     },
     async addCourse() {
-      if (!this.ssn || !this.newDcode || !this.newCno) {
+      if (!this.ssn || !this.newTitle || !this.newCno) {
         alert("Fill in all fields");
         return;
       }
       try {
         await axios.post(`http://localhost:5000/api/students/${this.ssn}/plan`, {
-          dcode: this.newDcode,
+          title: this.newTitle.toLowerCase(),  // convert to lowercase
           cno: parseInt(this.newCno)
         });
         this.loadPlan();
@@ -80,7 +80,7 @@ export default {
         console.error(err);
       }
     },
-    async removeCourse(dcode, cno) {
+        async removeCourse(dcode, cno) {
       try {
         await axios.post(`http://localhost:5000/api/students/${this.ssn}/plan/remove`, {
           dcode,

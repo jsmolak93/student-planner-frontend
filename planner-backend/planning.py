@@ -9,21 +9,27 @@ planning_bp = Blueprint("planning", __name__)
 @planning_bp.route("/api/students/<int:ssn>/plan", methods=["POST"])
 def add_course_to_plan(ssn):
     data = request.json
-    dcode = data.get("dcode")
+    title = data.get("title")  # <-- use title instead of dcode
     cno = data.get("cno")
 
-    if not dcode or not cno:
-        return jsonify({"error": "dcode and cno are required"}), 400
+    if not title or not cno:
+        return jsonify({"error": "title and cno are required"}), 400
 
     student = find_student(ssn)
     if not student:
         return jsonify({"error": "Student not found"}), 404
 
-    course = find_course(dcode, int(cno))
+    # Lookup course by title and cno
+    course = db.course.find_one({
+        "title": title.replace(" ", "_").lower(),  # match the stored format
+        "cno": int(cno)
+    })
+
     if not course:
         return jsonify({"error": "Course not found"}), 404
 
-    # Initialize planned_courses if not present
+    dcode = course["dcode"]
+
     if "planned_courses" not in student:
         student["planned_courses"] = []
 
@@ -39,6 +45,7 @@ def add_course_to_plan(ssn):
 
     return jsonify({"message": "Course added to plan!"})
 
+
 # Get a student's planned courses
 @planning_bp.route("/api/students/<int:ssn>/plan", methods=["GET"])
 def get_planned_courses(ssn):
@@ -47,7 +54,19 @@ def get_planned_courses(ssn):
         return jsonify({"error": "Student not found"}), 404
 
     planned_courses = student.get("planned_courses", [])
-    return jsonify(planned_courses)
+    
+    detailed_courses = []
+    for item in planned_courses:
+        course = find_course(item["dcode"], item["cno"])
+        if course:
+            detailed_courses.append({
+                "dcode": item["dcode"],
+                "cno": item["cno"],
+                "title": course.get("title", "Unknown Title")
+            })
+
+    return jsonify(detailed_courses)
+
 
 # Remove a course from a student's plan
 @planning_bp.route("/api/students/<int:ssn>/plan/remove", methods=["POST"])
